@@ -5,9 +5,30 @@
 	<key>app</key>
 	<string>com.bohemiancoding.sketch</string>
 	<key>build</key>
-	<integer>5247</integer>
+	<integer>5361</integer>
 	<key>commit</key>
-	<string>1ef084d50c63d7068d0ee3243bf1ba329de6b9d7</string>
+	<string>4570185e2c9ded14ebc287c802202c126573b527</string>
+	<key>fonts</key>
+	<array>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+		<string>HelveticaNeue-UltraLight</string>
+	</array>
+	<key>length</key>
+	<integer>229712</integer>
 	<key>version</key>
 	<integer>18</integer>
 </dict>
