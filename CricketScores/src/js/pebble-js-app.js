@@ -18,13 +18,16 @@ var teamHash = {
 
 // defaults
 var teamname = "India";
-var updateInterval = 3000; // 5 minutes
+var updateInterval = 30000; // 5 minutes
 var JSONURL = "http://pipes.yahoo.com/pipes/pipe.run?_id=b2b8571617d65f12000120cf55d01bec&_render=json" // add &r=randomnumber
 var XMLURL = "http://www.ecb.co.uk/live-scores.xml";
 
 var updateIntervalId;
 
+var ready = false;
+
 function fetchScores() {
+	console.log("fetching scores");
 	var response = null;
 	var req = new XMLHttpRequest();
 	req.open('GET', XMLURL, false);
@@ -104,6 +107,8 @@ var createResponseForPebble = function(team1String, team2String, isTest) {
 	    "team2_name":team2Name,
 	    "team2_score":team2Score
 	};
+
+	console.log(message);
 	
 	Pebble.sendAppMessage({
 	    "team1_name":team1Name,
@@ -188,10 +193,8 @@ var findTeam = function(teamString) {
 
 Pebble.addEventListener("ready",
     function(e) {
-        fetchScores();
-        updateIntervalId = setInterval(function() {
-        	fetchScores();
-        }, updateInterval*1000);
+    	ready = true;
+        // fetchScores();
     }
 );
 
@@ -203,9 +206,15 @@ Pebble.addEventListener("showConfiguration", function(e) {
 
 Pebble.addEventListener("webviewclosed", function(e) {
 	var configuration = JSON.parse(e.response);
-	clearInterval(updateIntervalId);
+	// clearInterval(updateIntervalId);
 	teamname = configuration.team;
 	updateInterval = configuration.time;
 	fetchScores();
-	console.log("Configuration window returned: ", configuration);
+	console.log("Configuration window returned: ", configuration.time);
+});
+
+Pebble.addEventListener("appmessage", function(e) {
+	if (ready) {
+		fetchScores();
+	}
 });

@@ -1,6 +1,7 @@
 #include <pebble.h>
 
 static Window *window;
+static AppTimer *timer;
 
 static TextLayer *team1_name;
 static TextLayer *team1_score;
@@ -8,7 +9,7 @@ static TextLayer *team2_name;
 static TextLayer *team2_score;
 
 static AppSync sync;
-static uint8_t sync_buffer [128];
+static uint8_t sync_buffer [64];
 
 enum ScoreKey {
   TEAM1_NAME_KEY = 0x0,
@@ -34,23 +35,43 @@ static void sync_error_callback(DictionaryResult dict_error, AppMessageResult ap
 }
 
 static void sync_tuple_changed_callback(const uint32_t key, const Tuple* new_tuple, const Tuple* old_tuple, void* context) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "New: %s", new_tuple->value->cstring);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "New: %s %lu", new_tuple->value->cstring, key);
+  if (old_tuple) {
+   APP_LOG(APP_LOG_LEVEL_DEBUG, "Old: %s %lu", old_tuple->value->cstring, key);
+  }
+
+  const char *val = new_tuple->value->cstring;
+
+  // TODO: Bad fix. 
+  if (strlen(new_tuple->value->cstring) < 2) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "INVALID: %lu", key);
+    if (old_tuple) {
+      val = old_tuple->value->cstring;
+    }
+  } else {
+    val = new_tuple->value->cstring;
+  }
+
   switch (key) {
     case TEAM1_NAME_KEY:
       // App Sync keeps new_tuple in sync_buffer, so we may use it directly
-      text_layer_set_text(team1_name, new_tuple->value->cstring);
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Set t1n to %s", new_tuple->value->cstring);
+      text_layer_set_text(team1_name, val);
       break;
 
     case TEAM1_SCORE_KEY:
-      text_layer_set_text(team1_score, new_tuple->value->cstring);
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Set t1s to %s", new_tuple->value->cstring);
+      text_layer_set_text(team1_score, val);
       break;
 
     case TEAM2_NAME_KEY:
-      text_layer_set_text(team2_name, new_tuple->value->cstring);
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Set t2n to %s", new_tuple->value->cstring);
+      text_layer_set_text(team2_name, val);
       break;
 
     case TEAM2_SCORE_KEY:
-      text_layer_set_text(team2_score, new_tuple->value->cstring);
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Set t2s to %s", new_tuple->value->cstring);
+      text_layer_set_text(team2_score, val);
       break;
   }
 }
@@ -59,6 +80,29 @@ static void click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
   window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
+}
+
+static void send_update_message(void *data) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "no data to send");
+  app_message_outbox_send();
+}
+
+static void timerCallback(void *data) {
+  Tuplet value = TupletInteger(1, 1);
+
+  DictionaryIterator *iter;
+  app_message_outbox_begin(&iter);
+
+  if (iter == NULL) {
+    return;
+  }
+
+  dict_write_tuplet(iter, &value);
+  dict_write_end(iter);
+
+  app_message_outbox_send();
+
+  timer = app_timer_register(15000, timerCallback, NULL);
 }
 
 static void send_cmd(void) {
@@ -79,7 +123,7 @@ static void send_cmd(void) {
 
 static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
-  GRect bounds = layer_get_bounds(window_layer);
+  // GRect bounds = layer_get_bounds(window_layer);
 
   team1_name = text_layer_create(GRect(0, 10, 144, 35));
   text_layer_set_font(team1_name, fonts_get_system_font(FONT_KEY_ROBOTO_CONDENSED_21));
@@ -108,14 +152,17 @@ static void window_load(Window *window) {
     TupletCString(TEAM2_SCORE_KEY, "------")
   };
 
-  app_sync_init(&sync, sync_buffer, sizeof(sync_buffer), initial_values, ARRAY_LENGTH(initial_values),
+  app_sync_init(&sync, sync_buffer, dict_calc_buffer_size_from_tuplets(initial_values, ARRAY_LENGTH(initial_values)), initial_values, ARRAY_LENGTH(initial_values),
       sync_tuple_changed_callback, sync_error_callback, NULL);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Size: %lu", dict_calc_buffer_size_from_tuplets(initial_values, ARRAY_LENGTH(initial_values)));
 
-  send_cmd();
+  // send_cmd();
+  timerCallback(NULL);
 }
 
 static void window_unload(Window *window) {
   app_sync_deinit(&sync);
+  app_timer_cancel(timer);
 
   text_layer_destroy(team1_name);
   text_layer_destroy(team1_score);
@@ -132,8 +179,8 @@ static void init(void) {
     .unload = window_unload,
   });
   
-  const int inbound_size = 128;
-  const int outbound_size = 128;
+  const int inbound_size = 64;
+  const int outbound_size = 64;
   app_message_open(inbound_size, outbound_size);
 
   const bool animated = true;
